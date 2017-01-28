@@ -5,7 +5,7 @@ const salesman = require('./salesman');
 const canvas = document.getElementById('myCanvas');
 const ctx = canvas.getContext('2d');
 
-const MAX_CITIES_IN_CELL = 4;
+const MAX_CITIES_IN_CELL = 2;
 const CELL_HEIGHT = 10;
 
 function rgbToBrightness(r, g, b) {
@@ -89,16 +89,11 @@ function renderLines(points) {
   ctx.stroke();
 }
 
-function orderPoints(points) {
-  const salesmanPoints = points.map(([x, y]) => new salesman.Point(x, y))
-  return salesman.solve(salesmanPoints).map(i => [salesmanPoints[i].x, salesmanPoints[i].y]);
-}
-
-jimp.read('./images/john.jpeg')
+jimp.read('./images/not-cat.jpeg')
   .then(image => image.greyscale())
   .then(imageToBrightnessGrid)
   .then(brightnessGrid => brightnessGrid.map(row => row.map(getNumberOfCitiesFromBrightness)))
   .then(getPointsFromCitiesGrid)
-  // .then(orderPoints)
-  .then(renderPoints)
+  .then(salesman.orderPoints)
+  .then(renderLines)
   .catch(err => console.error(err));
