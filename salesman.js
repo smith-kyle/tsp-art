@@ -1,6 +1,8 @@
 const fs = require('fs');
 const path = require('path');
-const { execSync } = require('child_process');
+const { exec } = require('child_process');
+
+const RUN_TIME = 20000;
 
 module.exports.orderPoints = function(points) {
   const header =
@@ -17,17 +19,18 @@ module.exports.orderPoints = function(points) {
   const tspFilePath = path.join(__dirname, 'build', 'points.tsp');
   fs.writeFileSync(tspFilePath, fileContent);
 
+  console.log('before the execution');
   const concordeCommand = `concorde ${tspFilePath}`;
-  execSync(concordeCommand);
+  exec(concordeCommand, { cwd: path.join(__dirname, 'build'), timeout: RUN_TIME });
 
   console.log('here');
   return new Promise((resolve) => {
     setTimeout(() => {
-      const solutionString = fs.readFileSync(path.join(__dirname, 'points.sol')).toString();
+      const solutionString = fs.readFileSync(path.join(__dirname, 'build', 'points.sol')).toString();
       const solutionIndeces = solutionString.match(/\S+/g);
       console.log('and here');
       const solution = solutionIndeces.map(i => points[i]);
       resolve(solution);
-    }, 5000);
+    }, RUN_TIME);
   });
 }
