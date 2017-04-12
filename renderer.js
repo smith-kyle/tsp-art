@@ -4,11 +4,10 @@ const jimp = require('jimp');
 const salesman = require('./salesman');
 const fp = require('lodash/fp');
 
-const canvas = document.getElementById('myCanvas');
-const ctx = canvas.getContext('2d');
-
-const MAX_CITIES_IN_CELL = 4;
+const MAX_CITIES_IN_CELL = 5;
 const CELL_HEIGHT = 2;
+const PATH_COUNT = 1;
+
 const svgHeader = '<?xml version="1.0" standalone="no"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">';
 
 function rgbToBrightness(r, g, b) {
@@ -84,30 +83,32 @@ function getPointsFromCitiesGrid(citiesGrid) {
   return points;
 }
 
-function renderPoints(points) {
-  console.log('renderPoints');
-  ctx.fillStyle = '#000000';
-  points.forEach(([x, y]) => ctx.fillRect(x, y, 1, 1));
-}
-
-function renderLines(points) {
-  console.log('renderLines');
-  points.shift(); // There's a rogue point in there. Don't know why
-  points.forEach(([x, y]) => ctx.lineTo(x, y));
-  ctx.stroke();
+function createPath(points) {
+  const svgLines = points.map(([x, y]) => `L ${x} ${y}`);
+  return `<path fill="none" stroke="black" stroke-width=".5" d="M ${points[0][0]} ${points[0][1]} ${svgLines.join('\n')}"/>`;
 }
 
 function generateSvg(points) {
   console.log('generateSvg');
   points.shift();
-  const svgLines = points.map(([x, y]) => i > 0 && i < points.length - 1
-    ? `<line x1="${points[i - 1][0]}" y1="${points[i - 1][1]}" x2="${x}" y2="${y}" fill="black" stroke="2" />`
-    : ''
-  );
+
+  const paths = fp.flow([
+    fp.chunk(Math.ceil(points.length / PATH_COUNT)),
+    fp.map(createPath)
+  ])(points);
+
   const maxX = fp.maxBy(([x]) => x, points)[0];
   const maxY = fp.maxBy(([_, y]) => y, points)[1];
-  const svgString = `${svgHeader}\n<svg viewBox="0 0 ${maxX} ${maxY}" version="1.1">\n${svgLines.join('\n')}\n</svg>`;
+  const svgString = `${svgHeader}\n<svg viewBox="0 0 ${maxX} ${maxY}" version="1.1">\n${paths.join('\n')}</svg>`;
   fs.writeFileSync('./images/output.svg', svgString)
+}
+
+function reducePrecision(points) {
+  const to10thsPlace = num => parseFloat(Math.round(num * .1) / .1);
+  return fp.map(
+    ([x, y]) => [to10thsPlace(x), to10thsPlace(y)],
+    points
+  );
 }
 
 jimp.read('./images/gitkraken.png')
@@ -116,5 +117,6 @@ jimp.read('./images/gitkraken.png')
   .then(brightnessGrid => brightnessGrid.map(row => row.map(getNumberOfCitiesFromBrightness)))
   .then(getPointsFromCitiesGrid)
   .then(salesman.orderPoints)
+  .then(reducePrecision)
   .then(generateSvg)
   .catch(err => console.error(err));

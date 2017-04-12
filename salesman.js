@@ -19,16 +19,13 @@ module.exports.orderPoints = function(points) {
   const tspFilePath = path.join(__dirname, 'build', 'points.tsp');
   fs.writeFileSync(tspFilePath, fileContent);
 
-  console.log('before the execution');
   const concordeCommand = `concorde ${tspFilePath}`;
   exec(concordeCommand, { cwd: path.join(__dirname, 'build'), timeout: RUN_TIME });
 
-  console.log('here');
   return new Promise((resolve) => {
     setTimeout(() => {
       const solutionString = fs.readFileSync(path.join(__dirname, 'build', 'points.sol')).toString();
       const solutionIndeces = solutionString.match(/\S+/g);
-      console.log('and here');
       const solution = solutionIndeces.map(i => points[i]);
       resolve(solution);
     }, RUN_TIME);
